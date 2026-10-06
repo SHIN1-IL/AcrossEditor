@@ -1,0 +1,25 @@
+# 1분에디터 고객 웹 + 운영 콘솔
+# Render New Web Service, root는 이 저장소.
+# 고객 웹: https://<서비스>.onrender.com/
+# 운영 콘솔: https://<서비스>.onrender.com/ops/
+
+services:
+  - type: web
+    name: acrosseditor
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: node server/index.js
+    envVars:
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash
+      - key: LICENSE_PATH
+        value: /var/data/licenses.json
+    disk:
+      name: acrosseditor-data
+      mountPath: /var/data
+      sizeGB: 1

@@ -1,0 +1,9 @@
+{
+  "name": "across-editor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "start": "node server/index.js"
+  }
+}

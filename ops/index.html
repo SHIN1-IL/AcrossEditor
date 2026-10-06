@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>1분에디터 운영 콘솔</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <p class="mark">AcrossEditor</p>
+  <h1>1분에디터 운영 콘솔</h1>
+  <p class="sub">관리자 전용 · 검색에 올리지 마세요</p>
+
+  <section class="card" id="loginCard">
+    <form id="loginForm">
+      <label for="token">ADMIN_TOKEN</label>
+      <div class="row">
+        <input type="password" id="token" autocomplete="current-password" placeholder="서버의 ADMIN_TOKEN" />
+        <button type="submit">입장</button>
+      </div>
+    </form>
+    <p id="loginErr" class="err" hidden></p>
+  </section>
+
+  <div id="desk" hidden>
+    <section class="card">
+      <h2>Gemini 키</h2>
+      <p class="plan-meta">문구 생성에 쓰는 서버 키입니다. 고객 확장에는 넣지 않습니다. Render에 올릴 때는 환경 변수 GEMINI_API_KEY로 같은 키를 넣으면 됩니다.</p>
+      <form id="geminiForm">
+        <input type="password" id="geminiKey" autocomplete="off" placeholder="이미 저장된 키는 다시 보이지 않습니다" />
+        <button type="submit">키 저장</button>
+      </form>
+      <p id="geminiState" class="ok"></p>
+    </section>
+    <section class="card">
+      <h2>빠른 발급</h2>
+      <div class="issue-cols">
+        <div class="col">
+          <h3>스탠다드 · 월 9,900</h3>
+          <p class="plan-meta">하루 8건 · 매월 15건</p>
+          <button type="button" data-issue="standard-30">1개월 · 9,900</button>
+          <button type="button" data-issue="family-standard">지인 30일</button>
+        </div>
+        <div class="col col-premium">
+          <h3>프리미엄 · 월 19,900</h3>
+          <p class="plan-meta">하루 15건 · 매월 30건</p>
+          <button type="button" class="gold" data-issue="premium-30">1개월 · 19,900</button>
+          <button type="button" class="gold" data-issue="family-premium">지인 30일</button>
+        </div>
+      </div>
+      <button type="button" data-issue="trial">체험 1건</button>
+      <label>메모 (업체명·전화)</label>
+      <input type="text" id="note" placeholder="예: ○○스튜디오 010-..." />
+      <p id="issueMsg" class="ok" hidden></p>
+      <label>고객 안내 카톡</label>
+      <textarea id="customerMsg" rows="10" readonly></textarea>
+      <button type="button" id="copyMsgBtn" class="ghost">안내문 복사</button>
+    </section>
+
+    <section class="card">
+      <h2>라이선스</h2>
+      <button type="button" id="refreshBtn" class="ghost">새로고침</button>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>키</th><th>플랜</th><th>시작</th><th>만료</th><th>상태</th><th>오늘</th><th>이번달</th><th>오류</th><th>메모</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

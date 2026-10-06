@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>1분에디터</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div>
+        <h1>1분에디터</h1>
+        <p class="brand">AcrossEditor</p>
+      </div>
+      <div id="quota-meter" class="quota-meter" hidden role="status"></div>
+      <p class="lede">이 탭을 위에서 아래까지 한 장으로 저장하고, 새 홈페이지 방향에 맞는 문구를 만듭니다.</p>
+    </header>
+
+    <details id="settings">
+      <summary>연결 설정</summary>
+      <label>
+        서버 주소
+        <input id="server-url" type="url" inputmode="url" spellcheck="false" placeholder="http://127.0.0.1:8787" />
+      </label>
+      <label>
+        라이선스 키
+        <input id="license-key" type="text" autocomplete="off" spellcheck="false" placeholder="운영 콘솔에서 받은 키" />
+      </label>
+      <button id="save-settings" type="button">설정 저장</button>
+      <p class="hint">문구는 라이선스 키로만 만듭니다. 테스트 서버는 http://127.0.0.1:8787 입니다.</p>
+    </details>
+
+    <details class="subscribe">
+      <summary>구독 안내</summary>
+      <p><strong>스탠다드</strong> · 월 9,900원 · 하루 8건 · 매월 15건</p>
+      <p><strong>프리미엄</strong> · 월 19,900원 · 하루 15건 · 매월 30건</p>
+      <p class="hint">요금은 한 달 단위입니다. 매월 한도가 다시 채워지고, 쓰지 않은 건은 다음 달로 넘어가지 않습니다. 상단에 오늘과 이번 달이 남은 건/한도로 표시됩니다. 스탠다드는 오늘 8/8 · 이번달 15/15, 프리미엄은 오늘 15/15 · 이번달 30/30에서 시작합니다. 캡처와 미리보기 수정은 건수에 포함되지 않습니다.</p>
+    </details>
+
+    <label class="reserve-url">
+      캡처할 주소
+      <input id="target-url" type="url" inputmode="url" spellcheck="false" placeholder="URL을 복사해서 여기에 붙여 넣으세요" />
+    </label>
+
+    <button id="capture" class="primary" type="button">전체 페이지 캡처</button>
+    <p id="status" class="status" aria-live="polite">참고할 홈페이지를 연 뒤 캡처를 누르세요.</p>
+
+    <section id="preview-section" class="preview" hidden>
+      <img id="preview" alt="캡처한 전체 페이지 미리보기" />
+      <div class="preview-row">
+        <p id="page-meta"></p>
+        <button id="download" type="button">이미지 저장</button>
+      </div>
+    </section>
+
+    <section id="section-picker" class="section-picker" hidden>
+      <div class="picker-head">
+        <h2>구간 선택</h2>
+        <button id="select-all" type="button">모두 선택</button>
+      </div>
+      <div id="section-list" class="section-list"></div>
+    </section>
+
+    <form id="brief">
+      <label>
+        새 홈페이지 방향
+        <textarea id="direction" rows="5" placeholder="예: 20대 여성 의류 쇼핑몰. 데일리 원피스와 봄 자켓. 당일출고와 무료배송을 강조."></textarea>
+      </label>
+      <label>
+        상호
+        <input id="business-name" type="text" placeholder="없으면 비워 두세요" />
+      </label>
+      <label>
+        말투
+        <select id="tone">
+          <option selected>세련된 광고 말투</option>
+          <option>고급스럽게</option>
+          <option>친근하게</option>
+          <option>담백하게</option>
+          <option>또렷하고 자신 있게</option>
+        </select>
+      </label>
+      <button id="generate" class="primary" type="submit">문구 만들기</button>
+    </form>
+
+    <section id="results" class="results" hidden>
+      <div class="results-head">
+        <h2>구간별 문구</h2>
+        <button id="copy-all" type="button">전체 복사</button>
+      </div>
+      <nav id="page-nav" class="page-nav" aria-label="구간 페이지" hidden></nav>
+      <div id="result-list"></div>
+    </section>
+
+    <dialog id="edit-dialog" aria-labelledby="edit-role">
+      <div class="dialog-head">
+        <p id="edit-role" class="role"></p>
+        <button id="edit-close" type="button">닫기</button>
+      </div>
+      <p class="sheet-caption">원래 문구</p>
+      <img id="edit-original" alt="원래 문구" />
+      <label class="edit-label">
+        수정된 문구
+        <textarea id="edit-text" rows="4"></textarea>
+      </label>
+      <div class="dialog-actions">
+        <button id="edit-copy" type="button">복사</button>
+        <button id="edit-apply" type="button">수정</button>
+        <button id="edit-jump" type="button">이 위치로</button>
+      </div>
+    </dialog>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>
