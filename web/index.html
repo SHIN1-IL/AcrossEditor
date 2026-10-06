@@ -10,7 +10,10 @@
 <body>
   <header class="header">
     <div class="header-top">
-      <div class="header-brand"><h1>1분에디터</h1></div>
+      <div class="header-brand">
+        <img class="brand-logo" src="/web/logo.png" alt="" width="36" height="36" />
+        <h1>1분에디터</h1>
+      </div>
       <div id="quotaMeter" class="quota-meter" hidden role="status"></div>
       <div class="header-tools">
         <button type="button" id="settingsBtn" class="settings-btn" aria-label="설정" title="설정">
@@ -83,6 +86,7 @@
   </div>
 
   <div class="workspace">
+    <div class="pane pane-capture">
     <section class="card">
       <label class="reserve-url">
         캡처할 주소
@@ -106,7 +110,9 @@
       </div>
       <div id="section-list" class="section-list"></div>
     </section>
+    </div>
 
+    <div class="pane pane-copy">
     <form id="brief" class="card">
       <label>
         새 홈페이지 방향
@@ -137,6 +143,7 @@
       <nav id="page-nav" class="page-nav" aria-label="구간 페이지" hidden></nav>
       <div id="result-list"></div>
     </section>
+    </div>
   </div>
 
   <dialog id="edit-dialog" aria-labelledby="edit-role">

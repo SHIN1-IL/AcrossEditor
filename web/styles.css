@@ -44,10 +44,11 @@ body.settings-open { overflow: hidden; }
   margin-bottom: 8px;
 }
 
-.header-brand { grid-area: brand; }
+.header-brand { grid-area: brand; display: flex; align-items: center; gap: 10px; }
+.brand-logo { width: 36px; height: 36px; border-radius: 9px; flex: none; }
 .header-tools { grid-area: tools; justify-self: end; }
 .quota-meter { grid-area: quota; justify-self: center; }
-.header h1 { margin: 4px 0 0; font-size: 1.25rem; }
+.header h1 { margin: 0; font-size: 1.25rem; }
 .header-tools, .quota-meter { display: flex; align-items: center; gap: 8px; }
 .quota-meter { flex-wrap: wrap; justify-content: center; }
 .quota-meter[hidden] { display: none; }
@@ -302,5 +303,35 @@ button:disabled { background: #93c5fd; cursor: not-allowed; }
   .header-top {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     grid-template-areas: "brand quota tools";
+  }
+}
+
+@media (min-width: 1024px) {
+  body:has(.workspace) {
+    max-width: none;
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 20px 12px;
+  }
+
+  body:has(.workspace) .workspace {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  body:has(.workspace) .pane {
+    min-height: 0;
+    overflow: auto;
+  }
+
+  body:has(.workspace) .page-legal {
+    flex: none;
+    margin-top: 10px;
   }
 }
