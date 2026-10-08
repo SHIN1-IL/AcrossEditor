@@ -14,7 +14,19 @@ const els = {
   tone: document.querySelector("#tone"),
   targetUrl: document.querySelector("#target-url"),
   status: document.querySelector("#status"),
+  previewSection: document.querySelector("#preview-section"),
+  previewImage: document.querySelector("#preview"),
+  pageText: document.querySelector("#page-text"),
+  pageMeta: document.querySelector("#page-meta"),
+  sectionPicker: document.querySelector("#section-picker"),
+  sectionList: document.querySelector("#section-list"),
+  results: document.querySelector("#results"),
+  resultList: document.querySelector("#result-list"),
+  captureButton: document.querySelector("#capture"),
+  generateButton: document.querySelector("#generate"),
 };
+
+const page = { blocks: [], title: "", url: "" };
 
 function load() {
   try {
@@ -147,27 +159,21 @@ function setStatus(message, isError) {
   els.status.classList.toggle("error", Boolean(isError));
 }
 
-document.querySelector("#capture").addEventListener("click", () => {
-  const state = load();
+els.captureButton.addEventListener("click", () => {
+  readPage().catch((error) => setStatus(error.message, true));
+});
+
+document.querySelector("#brief").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const state = rememberDraft();
   if (!state.licenseKey) {
     setStatus("먼저 설정에서 라이선스 키를 등록해 주세요.", true);
     openSettings(true);
     return;
   }
-  setStatus("참고할 홈페이지 탭에서 크롬 확장 1분에디터의 전체 페이지 캡처를 누르세요. 캡처 뒤 구간을 고르고 문구를 만듭니다.");
-});
-
-document.querySelector("#brief").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const state = load();
-  state.direction = els.direction.value.trim();
-  state.businessName = els.businessName.value.trim();
-  state.tone = els.tone.value;
-  state.targetUrl = els.targetUrl.value.trim();
-  save(state);
-  if (!state.licenseKey) {
-    setStatus("먼저 설정에서 라이선스 키를 등록해 주세요.", true);
-    openSettings(true);
+  if (!state.targetUrl) {
+    setStatus("캡처할 주소를 넣어 주세요.", true);
+    els.targetUrl.focus();
     return;
   }
   if (!state.direction) {
@@ -175,7 +181,145 @@ document.querySelector("#brief").addEventListener("submit", (event) => {
     els.direction.focus();
     return;
   }
-  setStatus("먼저 전체 페이지를 캡처해 주세요. 캡처는 참고 홈페이지를 연 탭의 크롬 확장에서 합니다.", true);
+  writeCopy(state).catch((error) => setStatus(error.message, true));
+});
+
+function rememberDraft() {
+  const state = load();
+  state.direction = els.direction.value.trim();
+  state.businessName = els.businessName.value.trim();
+  state.tone = els.tone.value;
+  state.targetUrl = els.targetUrl.value.trim();
+  save(state);
+  return state;
+}
+
+function selectedBlocks() {
+  const checked = [...els.sectionList.querySelectorAll(".section-check:checked")].map((input) => input.value);
+  if (!checked.length) return page.blocks;
+  return page.blocks.filter((block) => checked.includes(block.id));
+}
+
+async function readPage() {
+  const state = rememberDraft();
+  if (!state.licenseKey) {
+    setStatus("먼저 설정에서 라이선스 키를 등록해 주세요.", true);
+    openSettings(true);
+    return;
+  }
+  if (!state.targetUrl) {
+    setStatus("캡처할 주소를 넣어 주세요.", true);
+    els.targetUrl.focus();
+    return;
+  }
+  els.captureButton.disabled = true;
+  setStatus("주소에서 글자를 읽고 있습니다.");
+  try {
+    const response = await fetch("/api/read-page", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ licenseKey: state.licenseKey, url: state.targetUrl }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || "주소를 읽지 못했습니다.");
+    page.blocks = data.blocks || [];
+    page.title = data.title || "";
+    page.url = data.url || state.targetUrl;
+    showPage();
+    setStatus(`${page.title || page.url}에서 글자 ${page.blocks.length}칸을 읽었습니다. 방향을 적고 문구 만들기를 누르세요.`);
+  } finally {
+    els.captureButton.disabled = false;
+  }
+}
+
+function showPage() {
+  els.previewSection.hidden = false;
+  els.previewImage.hidden = true;
+  document.querySelector("#download").hidden = true;
+  els.pageText.hidden = false;
+  els.pageText.textContent = page.blocks.map((block) => block.original).join("\n");
+  els.pageMeta.textContent = page.title ? `${page.title} · ${page.url}` : page.url;
+  els.sectionList.replaceChildren();
+  for (const block of page.blocks) {
+    const label = document.createElement("label");
+    label.className = "section-option";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.className = "section-check";
+    input.value = block.id;
+    input.checked = true;
+    const caption = document.createElement("span");
+    caption.textContent = `${block.role} · ${block.original}`;
+    label.append(input, caption);
+    els.sectionList.append(label);
+  }
+  els.sectionPicker.hidden = page.blocks.length < 1;
+}
+
+async function writeCopy(state) {
+  els.generateButton.disabled = true;
+  setStatus("문구를 만들고 있습니다.");
+  try {
+    const response = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        licenseKey: state.licenseKey,
+        url: state.targetUrl,
+        direction: state.direction,
+        businessName: state.businessName,
+        tone: state.tone,
+        pageTitle: page.title,
+        pageUrl: page.url,
+        blocks: selectedBlocks(),
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || "문구를 만들지 못했습니다.");
+    if (data.daily_limit) showQuota(data);
+    renderRows(data.rows || []);
+    setStatus("문구를 만들었습니다. 칸마다 복사해 붙여 넣으세요.");
+  } finally {
+    els.generateButton.disabled = false;
+  }
+}
+
+function renderRows(rows) {
+  els.results.hidden = false;
+  els.resultList.replaceChildren();
+  for (const row of rows) {
+    if (!row.suggestion) continue;
+    const card = document.createElement("article");
+    card.className = "copy-row";
+    const title = document.createElement("h3");
+    title.textContent = row.role || "문구";
+    const original = document.createElement("p");
+    original.className = "original";
+    original.textContent = row.original || "";
+    const suggestion = document.createElement("p");
+    suggestion.textContent = row.suggestion;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "복사";
+    button.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(row.suggestion);
+      button.textContent = "복사됨";
+    });
+    card.append(title, original, suggestion, button);
+    els.resultList.append(card);
+  }
+  if (!els.resultList.childElementCount) {
+    const empty = document.createElement("p");
+    empty.textContent = "만든 문구가 없습니다. 주소를 확인한 뒤 다시 눌러 주세요.";
+    els.resultList.append(empty);
+  }
+}
+
+document.querySelector("#copy-all").addEventListener("click", async () => {
+  const text = [...els.resultList.querySelectorAll(".copy-row p:not(.original)")].map((node) => node.textContent).join("\n\n");
+  if (!text) return;
+  await navigator.clipboard.writeText(text);
+  setStatus("전체 문구를 복사했습니다.");
 });
 
 document.querySelector("#select-all").addEventListener("click", () => {

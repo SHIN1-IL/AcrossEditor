@@ -53,25 +53,31 @@
 
   async function loadList() {
     const data = await admin("/admin/licenses");
-    els.rows.innerHTML = (data.licenses || []).map((lic) => {
+    const list = data.licenses || [];
+    if (!list.length) {
+      els.rows.innerHTML = `<tr><td colspan="10" class="empty-row">표시할 라이선스가 없습니다.</td></tr>`;
+      return;
+    }
+    els.rows.innerHTML = list.map((lic) => {
       const key = lic.license_key;
-      return `<tr>
+      const rowClass = lic.status === "suspended" ? "row-suspended" : "";
+      return `<tr class="${rowClass}">
         <td><code>${escapeHtml(key)}</code></td>
         <td>${escapeHtml(lic.plan_label)}</td>
         <td>${escapeHtml(lic.started_at || "미시작")}</td>
         <td>${escapeHtml(lic.expires_at || `등록 후 ${lic.duration_days}일`)}</td>
-        <td>${escapeHtml(lic.status)}</td>
+        <td><span class="status-badge status-${escapeHtml(lic.status)}">${escapeHtml(lic.status)}</span></td>
         <td>${lic.daily_used}/${lic.daily_limit}</td>
         <td>${lic.monthly_used}/${lic.monthly_limit}</td>
         <td class="error-cell">${escapeHtml(lic.failure_message || "")}</td>
-        <td><input class="note-edit" value="${escapeHtml(lic.note || "")}" /></td>
+        <td class="note-cell"><input class="note-edit" value="${escapeHtml(lic.note || "")}" /></td>
         <td class="actions">
           ${lic.failure_message && !lic.recovery_used ? `<button type="button" data-act="restore" data-key="${escapeHtml(key)}">1건 추가</button>` : ""}
           ${lic.recovery_used ? `<span class="plan-meta">복구 완료</span>` : ""}
           <button type="button" data-act="savenote" data-key="${escapeHtml(key)}">메모</button>
           <button type="button" data-act="copy" data-key="${escapeHtml(key)}">안내</button>
           <button type="button" data-act="extend30" data-key="${escapeHtml(key)}">+30일</button>
-          <button type="button" data-act="suspend" data-key="${escapeHtml(key)}">정지</button>
+          <button type="button" class="btn-danger" data-act="suspend" data-key="${escapeHtml(key)}">정지</button>
           <button type="button" data-act="activate" data-key="${escapeHtml(key)}">활성</button>
         </td>
       </tr>`;

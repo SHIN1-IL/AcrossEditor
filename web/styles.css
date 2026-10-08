@@ -269,6 +269,12 @@ button:disabled { background: #93c5fd; cursor: not-allowed; }
 }
 
 .section-option img { width: 100%; border-radius: 4px; background: #e0f2fe; }
+.page-text { max-height: 220px; overflow: auto; white-space: pre-wrap; color: var(--text); font-size: 0.85rem; }
+.copy-row { padding: 10px 0; border-top: 1px solid var(--border); }
+.copy-row h3 { margin: 0 0 4px; font-size: 0.8rem; color: var(--accent-dark); }
+.copy-row p { margin: 0 0 6px; }
+.copy-row .original { color: var(--muted); font-size: 0.8rem; }
+.copy-row button { width: auto; margin: 0; padding: 8px 10px; }
 .section-option:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 
 #edit-dialog {

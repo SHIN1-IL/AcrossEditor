@@ -2,7 +2,8 @@ import { createServer } from "node:http";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { outputTokenCap, parseModelJson } from "../src/logic.js";
+import { buildPrompt, outputTokenCap, pairSuggestions, parseModelJson } from "../src/logic.js";
+import { readPublicPage } from "./read-page.js";
 import { CASE_COUNT } from "./plans.js";
 import { grantFailedCase, issueLicense, listLicenses, openRetry, recordFinalFailure, releaseSections, reserveSections, takeRetry, updateLicense } from "./store.js";
 
@@ -13,6 +14,31 @@ const geminiModel = process.env.GEMINI_MODEL || "gemini-3.5-flash";
 const geminiFile = process.env.LICENSE_PATH
   ? path.join(path.dirname(process.env.LICENSE_PATH), "gemini.key")
   : path.join(root, "server/data/gemini.key");
+
+function todayKst() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
+}
+
+async function readableLicense(licenseKey) {
+  const key = String(licenseKey || "").trim();
+  const licenses = await listLicenses();
+  const found = licenses.find((item) => item.license_key === key);
+  if (!found) throw new Error("키를 찾지 못했습니다.");
+  if (found.status !== "active") throw new Error("정지된 키입니다.");
+  if (found.expires_at && todayKst() > found.expires_at) throw new Error("사용 기간이 끝났습니다.");
+  return found;
+}
+
+function sanitizeBlocks(value) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 40).map((block, index) => ({
+    id: String(block?.id || `b${index + 1}`),
+    role: String(block?.role || "설명").slice(0, 20),
+    original: String(block?.original || "").replace(/\s+/g, " ").trim().slice(0, 500),
+    top: Number(block?.top) || index * 40,
+    left: 0,
+  })).filter((block) => block.original.length >= 2);
+}
 
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -122,18 +148,40 @@ const server = createServer(async (req, res) => {
       send(res, 200, found);
       return;
     }
+    if (req.method === "POST" && url.pathname === "/api/read-page") {
+      const body = await readBody(req);
+      await readableLicense(body.licenseKey);
+      send(res, 200, await readPublicPage(body.url));
+      return;
+    }
     if (req.method === "POST" && url.pathname === "/api/generate") {
       const body = await readBody(req);
       const key = String(body.licenseKey || "").trim();
       const sectionCount = CASE_COUNT;
+      let page = null;
+      let blocks = sanitizeBlocks(body.blocks);
+      const givenPrompt = String(body.prompt || "").trim();
+      if (!givenPrompt && !blocks.length) {
+        if (!body.url) throw new Error("캡처할 주소를 넣어 주세요.");
+        page = await readPublicPage(body.url);
+        blocks = page.blocks;
+      }
       const retrying = await takeRetry(key);
       let reserved = false;
+      const prompt = givenPrompt || buildPrompt({
+        direction: body.direction,
+        businessName: body.businessName,
+        tone: body.tone,
+        pageTitle: body.pageTitle || page?.title || "",
+        pageUrl: body.pageUrl || page?.url || body.url || "",
+        blocks,
+      });
       try {
         const usage = await reserveSections(key, sectionCount);
         reserved = true;
-        const text = await gemini(body.prompt, body.images, body.slotCount);
-        parseModelJson(text);
-        send(res, 200, { text, ...usage });
+        const text = await gemini(prompt, body.images, body.slotCount || blocks.length);
+        const rows = pairSuggestions(blocks, parseModelJson(text));
+        send(res, 200, { text, rows, title: page?.title || body.pageTitle || "", url: page?.url || body.pageUrl || "", ...usage });
       } catch (error) {
         if (!reserved) {
           if (retrying) await openRetry(key);
