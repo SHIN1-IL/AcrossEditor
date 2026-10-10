@@ -1,16 +1,16 @@
 :root {
-  --bg: #e0f2fe;
+  --bg: #f4f7fb;
   --raised: #ffffff;
-  --overlay: #f0f9ff;
-  --border: #7dd3fc;
-  --text: #082f49;
-  --muted: #475569;
-  --sky: #0284c7;
-  --sky-deep: #0369a1;
-  --sky-dim: rgba(2, 132, 199, 0.08);
-  --sky-border: #7dd3fc;
-  --premium: #075985;
-  --ok: #0369a1;
+  --overlay: #f8fafc;
+  --border: #d6dee8;
+  --text: #0f172a;
+  --muted: #64748b;
+  --sky: #1a3a5c;
+  --sky-deep: #0f2744;
+  --sky-dim: rgba(15, 39, 68, 0.06);
+  --sky-border: #d6dee8;
+  --premium: #0f2744;
+  --ok: #0f2744;
   --err: #be123c;
 }
 
@@ -20,7 +20,7 @@ body {
   padding: 16px;
   max-width: 1100px;
   color: var(--text);
-  background: linear-gradient(180deg, #bae6fd 0%, var(--bg) 180px);
+  background: var(--bg);
   font-size: 14px;
 }
 
@@ -42,7 +42,7 @@ h1 {
   border-radius: 10px;
   padding: 14px;
   margin-bottom: 14px;
-  box-shadow: 0 1px 2px rgba(3, 105, 161, 0.1);
+  box-shadow: 0 1px 2px rgba(15, 39, 68, 0.08);
 }
 
 .row {
@@ -78,7 +78,7 @@ textarea {
 
 input::placeholder,
 textarea::placeholder {
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .row input {
@@ -91,7 +91,7 @@ button {
   border: none;
   border-radius: 6px;
   background: var(--sky-deep);
-  color: #f0f9ff;
+  color: #f8fafc;
   font-weight: 700;
   cursor: pointer;
 }
@@ -174,7 +174,7 @@ button.secondary:hover {
 
 button.btn-premium {
   background: var(--premium);
-  color: #f0f9ff;
+  color: #f8fafc;
 }
 
 button.btn-premium:hover {
@@ -325,7 +325,7 @@ tr.row-suspended .note-edit {
 }
 
 tr.row-suspended .actions button {
-  color: #f0f9ff;
+  color: #f8fafc;
 }
 
 tr.row-suspended .actions button.btn-danger {
