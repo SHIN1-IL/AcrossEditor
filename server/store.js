@@ -74,7 +74,38 @@ export function publicLicense(license) {
     failure_sections: license.failure_report?.sections || 0,
     failure_restored: Boolean(license.failure_report?.restored),
     recovery_used: Boolean(license.recovery_used),
+    bound_email: license.bound_email || "",
   };
+}
+
+export async function claimLicense(key, email) {
+  const normalized = String(email || "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    throw new Error("크롬에 Google 계정으로 로그인한 뒤 다시 눌러 주세요. 키는 그 계정에 묶입니다.");
+  }
+  const data = await load();
+  const license = findMutable(data, String(key || "").trim());
+  if (license.status !== "active") throw new Error("정지된 키입니다.");
+  const day = todayKst();
+  if (!license.started_at) {
+    license.started_at = day;
+    if (Number(license.duration_days) > 0) license.expires_at = addDays(day, Number(license.duration_days));
+  }
+  if (license.expires_at && day > license.expires_at) throw new Error("사용 기간이 끝났습니다.");
+  if (!license.bound_email) license.bound_email = normalized;
+  else if (license.bound_email !== normalized) {
+    throw new Error("이 키는 다른 크롬 계정에서 사용 중입니다. 컴퓨터를 바꿨다면 관리자에게 계정 해제를 요청하세요.");
+  }
+  await save(data);
+  return publicLicense(license);
+}
+
+export async function clearBoundEmail(key) {
+  const data = await load();
+  const license = findMutable(data, String(key || "").trim());
+  license.bound_email = "";
+  await save(data);
+  return publicLicense(license);
 }
 
 export async function listLicenses() {
@@ -94,7 +125,8 @@ export async function issueLicense({ plan, days, note }) {
     plan,
     plan_label: spec.label,
     status: "active",
-    duration_days: Number(days) || 30,
+    duration_days: Number(days) === 0 ? 0 : (Number(days) || 30),
+    bound_email: "",
     started_at: "",
     expires_at: "",
     daily_limit: spec.daily,

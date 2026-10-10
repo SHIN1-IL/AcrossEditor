@@ -574,24 +574,138 @@ def write_pdf(path, story, brand="1분에디터", doc_title=None):
     print(f"wrote {path}")
 
 
+def build_install_customer(s, font):
+    story = []
+    story.append(Spacer(1, 8 * mm))
+    story.append(Paragraph("1분에디터", s["sub"]))
+    story.append(Paragraph("설치 사용 방법", s["cover"]))
+    story.append(Paragraph("설치판 · 79,000원 · 1회<br/>작성일: 2026-10-10", s["sub"]))
+    story.append(Paragraph("1. 사용할 수 있는 기기", s["h1"]))
+    story.append(Paragraph(
+        "1분에디터는 컴퓨터에 설치된 크롬 확장입니다. "
+        "Windows 또는 Mac의 크롬에서 사용합니다. 크롬에는 구매자의 Google 계정이 로그인되어 있어야 합니다. "
+        "같은 Google 계정이면 노트북과 데스크톱을 함께 쓸 수 있습니다.",
+        s["body"],
+    ))
+    story.append(Paragraph(
+        "핸드폰, 아이패드, 갤럭시탭에는 설치되지 않습니다. "
+        "그 기기의 브라우저는 이 확장을 불러오지 못하고, 열린 페이지를 캡처하지도 못합니다.",
+        s["body"],
+    ))
+    story.append(Paragraph("2. 설치", s["h1"]))
+    story.append(bullets([
+        "ZIP을 풀면 이 PDF와 extension 폴더가 있습니다.",
+        "크롬 주소창에 chrome://extensions 를 입력합니다.",
+        "오른쪽 위의 개발자 모드를 켭니다.",
+        "압축해제된 확장 프로그램을 로드합니다를 누르고 extension 폴더를 선택합니다.",
+        "도구막대에 1분에디터 아이콘이 생기면 눌러 옆 패널을 엽니다.",
+    ], font, s))
+    story.append(Paragraph("3. 키 두 개", s["h1"]))
+    story.append(Paragraph(
+        "오른쪽 위 설정 아이콘을 누릅니다. 라이선스 키는 구매 후 받은 키입니다. "
+        "제미나이 키는 Google AI Studio에서 본인 계정으로 만든 무료 키입니다. "
+        "챗GPT 로그인 계정은 확장에 넣을 수 없습니다. 두 키를 저장합니다.",
+        s["body"],
+    ))
+    story.append(Paragraph(
+        "라이선스 키는 처음 저장한 크롬 Google 계정에 묶입니다. "
+        "다른 사람의 크롬에서는 같은 키가 열리지 않습니다. "
+        "계정을 바꿨다면 070-8065-1258 로 계정 해제를 요청합니다.",
+        s["body"],
+    ))
+    story.append(Paragraph("4. 문구 만들기", s["h1"]))
+    story.append(bullets([
+        "캡처할 주소에 example.com 처럼 적고 전체 페이지 캡처를 누릅니다. 그 주소가 열리고 화면이 저장됩니다.",
+        "이미 그 홈페이지가 열려 있으면 그 탭을 캡처합니다.",
+        "구간을 고르고, 새 홈페이지 방향과 상호, 말투를 적은 뒤 문구 만들기를 누릅니다.",
+        "나온 문구를 복사해 아임웹 글자 칸에 붙여 넣습니다.",
+        "이미지 저장으로 캡처 화면을 받을 수 있습니다.",
+    ], font, s))
+    story.append(Paragraph("5. 안 될 때", s["h1"]))
+    story.append(table(
+        ["상황", "이렇게 해 보세요"],
+        [
+            ["다른 계정에서 사용 중", "구매자 본인의 크롬 Google 계정인지 확인합니다. 계정을 바꿨다면 관리자에게 해제를 요청합니다."],
+            ["제미나이 키가 거절됨", "AI Studio에서 키를 다시 만들어 설정에 넣습니다."],
+            ["한도에 걸림", "무료 키의 하루 한도입니다. 다음 날 다시 누르거나, 주소만 있는 가벼운 사용으로 바꿉니다."],
+            ["캡처가 안 됨", "Windows 또는 Mac 크롬인지 확인합니다. 확장 설정에서 사이트 액세스를 모든 사이트로 바꿉니다."],
+        ],
+        [50 * mm, 125 * mm],
+        s,
+    ))
+    return story
+
+
+def build_install_admin(s, font):
+    story = []
+    story.append(Spacer(1, 8 * mm))
+    story.append(Paragraph("1분에디터", s["sub"]))
+    story.append(Paragraph("관리자 운영 가이드", s["cover"]))
+    story.append(Paragraph("설치판 · 운영 콘솔은 웹으로 유지<br/>작성일: 2026-10-10", s["sub"]))
+    story.append(Paragraph("1. 주소", s["h1"]))
+    story.append(table(
+        ["구분", "주소"],
+        [
+            ["고객 안내", f"{BASE}/"],
+            ["운영 콘솔", OPS_URL],
+            ["개인정보", PRIVACY_URL],
+        ],
+        [40 * mm, 135 * mm],
+        s,
+    ))
+    story.append(Paragraph(
+        "고객 웹 편집 화면은 내렸습니다. 첫 화면은 크롬 확장으로 쓰라는 안내입니다. "
+        "운영 콘솔과 라이선스 확인은 Render의 AcrossEditor 서비스에 그대로 있습니다.",
+        s["body"],
+    ))
+    story.append(Paragraph("2. 상품", s["h1"]))
+    story.append(Paragraph(
+        "판매 상품은 설치판 하나입니다. 79,000원, 1회, 기간 제한 없음. "
+        "아임웹에는 ZIP 하나만 올립니다. 안에는 사용방법 PDF와 extension 폴더가 있습니다. "
+        "입금 확인 후 운영 콘솔에서 설치판 키를 발급해 그 구매자에게만 보냅니다.",
+        s["body"],
+    ))
+    story.append(Paragraph("3. 키와 계정", s["h1"]))
+    story.append(bullets([
+        f"운영 콘솔 {OPS_URL} 에 ADMIN_TOKEN으로 입장합니다.",
+        "설치판 · 79,000 · 무기한을 눌러 키를 만듭니다.",
+        "안내문 복사로 키와 설치 순서를 고객에게 보냅니다.",
+        "고객이 처음 문구를 만들면 그 크롬 Google 계정이 키에 기록됩니다.",
+        "다른 계정으로 열리면 거절됩니다. 노트북과 데스크톱은 같은 Google 계정이면 둘 다 됩니다.",
+        "컴퓨터나 계정을 바꾼 고객은 목록의 계정 해제를 누른 뒤 다시 키를 넣게 합니다.",
+        "정지된 키는 문구를 만들지 못합니다. 활성으로 되돌릴 수 있습니다.",
+    ], font, s))
+    story.append(Paragraph("4. 제미나이 키", s["h1"]))
+    story.append(Paragraph(
+        "고객 문구는 고객이 확장 설정에 넣은 본인 제미나이 키로 만들어집니다. "
+        "서버에 저장된 유료 제미나이 키는 설치판 문구에 쓰이지 않습니다. "
+        "운영 콘솔의 Gemini 키 칸은 비워 두어도 됩니다. ZIP과 PDF에 그 키를 넣지 않습니다.",
+        s["body"],
+    ))
+    story.append(Paragraph("5. 배포", s["h1"]))
+    story.append(Paragraph(
+        "고객 화면이나 운영 콘솔을 고친 뒤에는 main에 푸시합니다. Render가 AcrossEditor를 다시 배포합니다. "
+        "라이선스 파일은 /var/data/licenses.json 입니다. 디스크가 붙어 있어야 재배포 후에도 키가 남습니다. "
+        "확장 ZIP은 아임웹 상품 파일을 새 버전으로 교체해 올립니다. 파일 이름에는 버전과 날짜를 넣습니다.",
+        s["body"],
+    ))
+    story.append(Paragraph(f"문의: {CONTACT}<br/>입금: {BANK}", s["body"]))
+    return story
+
+
 def main():
     font = register_font()
     s = styles(font)
     DOCS.mkdir(exist_ok=True)
     write_pdf(
         DOCS / "1분에디터_관리자_운영가이드.pdf",
-        build_admin(s, font),
+        build_install_admin(s, font),
         doc_title="1분에디터 관리자 운영 가이드",
     )
     write_pdf(
-        DOCS / "1분에디터_고객_사용방법_스탠다드.pdf",
-        build_customer_standard(s, font),
-        doc_title="1분에디터 고객 사용 방법 · 스탠다드",
-    )
-    write_pdf(
-        DOCS / "1분에디터_고객_사용방법_프리미엄.pdf",
-        build_customer_premium(s, font),
-        doc_title="1분에디터 고객 사용 방법 · 프리미엄",
+        DOCS / "1분에디터_사용방법.pdf",
+        build_install_customer(s, font),
+        doc_title="1분에디터 설치 사용 방법",
     )
 
 

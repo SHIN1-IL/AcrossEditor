@@ -2,10 +2,10 @@
   "manifest_version": 3,
   "name": "1분에디터",
   "short_name": "1분에디터",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "참고 홈페이지 전체를 캡처하고, 새 홈페이지 방향에 맞는 문구를 만듭니다.",
   "minimum_chrome_version": "116",
-  "permissions": ["activeTab", "clipboardWrite", "scripting", "sidePanel", "storage"],
+  "permissions": ["activeTab", "clipboardWrite", "identity", "identity.email", "scripting", "sidePanel", "storage", "tabs"],
   "host_permissions": [
     "<all_urls>",
     "https://generativelanguage.googleapis.com/*",

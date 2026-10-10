@@ -57,3 +57,20 @@ test("a second failure is reported once and restored once", async () => {
   await assert.rejects(() => store.grantFailedCase(key), /한 번만/);
   await rm(dir, { recursive: true });
 });
+
+test("an install key binds to the first chrome account", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "editor-store-"));
+  process.env.EDITOR_STORE = path.join(dir, "licenses.json");
+  const store = await import(`../server/store.js?bind=${Date.now()}`);
+  const issued = await store.issueLicense({ plan: "install", days: 0, note: "설치판" });
+  assert.equal(issued.duration_days, 0);
+  assert.equal(issued.bound_email, "");
+  const claimed = await store.claimLicense(issued.license_key, "Owner@Example.com");
+  assert.equal(claimed.bound_email, "owner@example.com");
+  assert.equal(claimed.expires_at, "");
+  await store.claimLicense(issued.license_key, "owner@example.com");
+  await assert.rejects(() => store.claimLicense(issued.license_key, "other@example.com"), /다른 크롬 계정/);
+  const cleared = await store.clearBoundEmail(issued.license_key);
+  assert.equal(cleared.bound_email, "");
+  await rm(dir, { recursive: true });
+});

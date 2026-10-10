@@ -1,6 +1,6 @@
 :root {
-  color: #1c2b24;
-  background: #f4f1ea;
+  color: #0f172a;
+  background: #f4f7fb;
   font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
   font-size: 14px;
   line-height: 1.45;
@@ -43,13 +43,75 @@ button:disabled {
 button.primary {
   width: 100%;
   border: 0;
-  background: #1f6b4a;
-  color: #f7f4ee;
+  background: #0f2744;
+  color: #f8fafc;
   padding: 11px 12px;
   font-weight: 650;
 }
 
 .top { margin-bottom: 14px; }
+
+.top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border-color: #d6dee8;
+  background: #fff;
+  color: #0f2744;
+}
+
+.settings-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+
+.settings-layer[hidden] { display: none; }
+
+.settings-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.settings-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(100%, 320px);
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  background: #fff;
+  border-left: 1px solid #d6dee8;
+}
+
+.settings-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+}
 
 .brand {
   margin-top: 2px;

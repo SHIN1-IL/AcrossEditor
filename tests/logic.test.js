@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   buildPrompt,
   canCapture,
+  normalizeCaptureUrl,
   formatCopyAll,
   mergeBlocks,
   layoutPages,
@@ -18,6 +19,22 @@ import {
   selectCopyBlocks,
   slicePlan,
 } from "../src/logic.js";
+
+test("accepts a bare host as a capture address", () => {
+  assert.equal(normalizeCaptureUrl("acrosstool.com"), "https://acrosstool.com/");
+  assert.equal(normalizeCaptureUrl("https://example.com/about"), "https://example.com/about");
+  assert.equal(normalizeCaptureUrl("  "), "");
+  assert.throws(() => normalizeCaptureUrl("javascript:alert(1)"), /http 또는 https/);
+});
+
+test("pairs suggestions by order when ids do not match", () => {
+  const paired = pairSuggestions(
+    [{ id: "b1", role: "제목", original: "옛" }, { id: "b2", role: "버튼", original: "더보기" }],
+    [{ id: "s1", suggestion: "새 제목" }, { id: "s2", suggestion: "지금 보기" }],
+  );
+  assert.equal(paired[0].suggestion, "새 제목");
+  assert.equal(paired[1].suggestion, "지금 보기");
+});
 
 test("captures only web pages", () => {
   assert.equal(canCapture("https://example.com/about"), true);

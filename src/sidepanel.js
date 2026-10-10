@@ -9,14 +9,19 @@ import {
   parseModelJson,
   slicePlan,
 } from "./logic.js";
+import { generateCopy } from "./generate.js";
 
-const settings = document.querySelector("#settings");
+const LOCAL_SERVER = "http://127.0.0.1:8787";
+const PUBLIC_SERVER = "https://acrosseditor.onrender.com";
+
+const settingsLayer = document.querySelector("#settingsLayer");
+const licenseHint = document.querySelector("#licenseHint");
 const serverUrlInput = document.querySelector("#server-url");
 const licenseInput = document.querySelector("#license-key");
+const geminiInput = document.querySelector("#gemini-key");
 const directionInput = document.querySelector("#direction");
 const businessNameInput = document.querySelector("#business-name");
 const toneInput = document.querySelector("#tone");
-const targetUrlInput = document.querySelector("#target-url");
 const statusNode = document.querySelector("#status");
 const sectionPicker = document.querySelector("#section-picker");
 const sectionList = document.querySelector("#section-list");
@@ -30,7 +35,6 @@ const editDialog = document.querySelector("#edit-dialog");
 const editRole = document.querySelector("#edit-role");
 const editOriginal = document.querySelector("#edit-original");
 const editText = document.querySelector("#edit-text");
-const quotaMeter = document.querySelector("#quota-meter");
 const captureButton = document.querySelector("#capture");
 const downloadButton = document.querySelector("#download");
 const generateButton = document.querySelector("#generate");
@@ -53,10 +57,14 @@ const state = {
   copyLocked: false,
 };
 
+document.querySelector("#settingsBtn").addEventListener("click", () => openSettings());
+document.querySelector("#settingsClose").addEventListener("click", () => closeSettings());
+document.querySelector("#settingsBackdrop").addEventListener("click", () => closeSettings());
 document.querySelector("#save-settings").addEventListener("click", () => {
-  saveSettings().then(async () => {
+  saveSettings().then(() => {
     setStatus("설정을 저장했습니다.");
-    await refreshQuota();
+    updateHint();
+    closeSettings();
   });
 });
 document.querySelector("#select-all").addEventListener("click", () => {
@@ -70,9 +78,6 @@ document.querySelector("#brief").addEventListener("submit", (event) => {
   startGenerate();
 });
 copyAllButton.addEventListener("click", () => copyText(formatCopyAll(state.rows), copyAllButton));
-targetUrlInput.addEventListener("change", () => {
-  saveDraft();
-});
 document.querySelector("#edit-close").addEventListener("click", () => editDialog.close());
 document.querySelector("#edit-copy").addEventListener("click", () => saveEditor(true));
 document.querySelector("#edit-apply").addEventListener("click", () => saveEditor(false));
@@ -86,9 +91,11 @@ loadStored();
 async function loadStored() {
   const stored = await chrome.storage.local.get(["settings", "draft"]);
   const saved = stored.settings || {};
-  serverUrlInput.value = saved.serverUrl || "http://127.0.0.1:8787";
+  serverUrlInput.value = serverFromStorage(saved.serverUrl);
   licenseInput.value = saved.licenseKey || "";
-  if (!saved.licenseKey) settings.open = true;
+  geminiInput.value = saved.geminiKey || "";
+  updateHint();
+  if (!saved.licenseKey || !saved.geminiKey) openSettings();
 
   const draft = stored.draft || {};
   directionInput.value = draft.direction || "";
@@ -96,8 +103,6 @@ async function loadStored() {
   if ([...toneInput.options].some((option) => option.value === draft.tone)) {
     toneInput.value = draft.tone;
   }
-  targetUrlInput.value = draft.targetUrl || "";
-  await refreshQuota();
 }
 
 async function saveSettings() {
@@ -105,8 +110,22 @@ async function saveSettings() {
     settings: {
       serverUrl: serverUrlInput.value.trim(),
       licenseKey: licenseInput.value.trim(),
+      geminiKey: geminiInput.value.trim(),
     },
   });
+}
+
+function openSettings() {
+  settingsLayer.hidden = false;
+}
+
+function closeSettings() {
+  settingsLayer.hidden = true;
+}
+
+function updateHint() {
+  const ready = licenseInput.value.trim() && geminiInput.value.trim();
+  licenseHint.hidden = ready;
 }
 
 async function saveDraft() {
@@ -115,7 +134,6 @@ async function saveDraft() {
       direction: directionInput.value.trim(),
       businessName: businessNameInput.value.trim(),
       tone: toneInput.value,
-      targetUrl: targetUrlInput.value.trim(),
     },
   });
 }
@@ -130,6 +148,18 @@ function setBusy(capturing, generating) {
   generateButton.disabled = capturing || generating || state.copyLocked;
   captureButton.textContent = capturing ? "캡처 중…" : "전체 페이지 캡처";
   generateButton.textContent = generating ? "문구 작성 중…" : (state.copyLocked ? "문구 만들기 완료" : "문구 만들기");
+}
+
+function serverFromStorage(value) {
+  const url = String(value || "").trim().replace(/\/$/, "");
+  if (!url || url === LOCAL_SERVER) return PUBLIC_SERVER;
+  return url;
+}
+
+function currentServerUrl() {
+  const url = serverFromStorage(serverUrlInput.value);
+  serverUrlInput.value = url;
+  return url;
 }
 
 async function startCapture() {
@@ -319,8 +349,6 @@ async function startGenerate() {
 
   await saveSettings();
   await saveDraft();
-  const stored = await chrome.storage.local.get("settings");
-  const saved = stored.settings || {};
   setBusy(false, true);
   setStatus("선택한 구간의 글자 칸을 읽고 문구를 작성합니다.");
 
@@ -347,7 +375,6 @@ async function startGenerate() {
     });
     const images = includeImages ? sliceCanvas(state.canvas) : [];
     const text = await requestCopy({
-      saved,
       prompt,
       images,
       slotCount: Math.max(1, copy.blocks.length),
@@ -365,72 +392,43 @@ async function startGenerate() {
     state.omitted = copy.omitted;
     await renderResults(selectedIndexes);
     const filled = state.rows.filter((row) => row.suggestion).length;
+    if (!filled) {
+      setStatus("문구가 비어 있습니다. 방향을 더 구체적으로 적고 다시 눌러 주세요.", true);
+      return;
+    }
     const omittedNote = state.omitted
       ? " 로그인, 장바구니, 하단 푸터는 빼 두었습니다. 방향에 적으면 그 문구도 넣습니다."
       : "";
     state.copyLocked = true;
-    setStatus(`선택한 ${copy.sectionCount}구간에 문구 ${filled}개를 올려 두었습니다. 이번 생성은 1건입니다. 글자를 누르면 복사하고 수정할 수 있습니다. 이 캡처는 다시 만들지 않습니다.${omittedNote}`);
+    setStatus(`선택한 ${copy.sectionCount}구간에 문구 ${filled}개를 올려 두었습니다. 글자를 누르면 복사하고 수정할 수 있습니다. 이 캡처는 다시 만들지 않습니다.${omittedNote}`);
     resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
     if (error?.lock) state.copyLocked = true;
     setStatus(error?.message || "문구 생성에 실패했습니다.", true);
   } finally {
     setBusy(false, false);
-    await refreshQuota();
   }
 }
 
-function renderQuota(status) {
-  quotaMeter.replaceChildren();
-  if (!status || !Number.isFinite(Number(status.daily_limit))) {
-    quotaMeter.hidden = true;
-    return;
-  }
-  const dailyLeft = Math.max(0, Number(status.daily_limit) - Number(status.daily_used || 0));
-  const monthLeft = Math.max(0, Number(status.monthly_limit) - Number(status.monthly_used || 0));
-  const plan = document.createElement("span");
-  plan.className = "quota-plan";
-  plan.textContent = status.plan_label || "라이선스";
-  quotaMeter.append(
-    plan,
-    quotaBlock("오늘", dailyLeft, status.daily_limit),
-    quotaBlock("이번달", monthLeft, status.monthly_limit),
-  );
-  quotaMeter.hidden = false;
-  quotaMeter.setAttribute(
-    "aria-label",
-    `${plan.textContent} 오늘 ${dailyLeft}/${status.daily_limit} 이번달 ${monthLeft}/${status.monthly_limit}`,
-  );
-}
-
-function quotaBlock(label, left, limit) {
-  const block = document.createElement("span");
-  block.className = "quota-block";
-  const name = document.createElement("span");
-  name.className = "quota-label";
-  name.textContent = label;
-  block.append(name, document.createTextNode(`${left}/${limit}`));
-  return block;
-}
-
-async function refreshQuota() {
-  const server = String(serverUrlInput.value || "http://127.0.0.1:8787").replace(/\/$/, "");
-  const licenseKey = licenseInput.value.trim();
-  if (!licenseKey) {
-    renderQuota(null);
-    return;
-  }
-  try {
-    const response = await fetch(`${server}/api/license`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ licenseKey }),
+function chromeAccountEmail() {
+  return new Promise((resolve, reject) => {
+    if (!chrome.identity?.getProfileUserInfo) {
+      reject(new Error("이 크롬에서는 Google 계정을 확인하지 못합니다. 컴퓨터의 크롬에 로그인한 뒤 다시 눌러 주세요."));
+      return;
+    }
+    chrome.identity.getProfileUserInfo({ accountStatus: "ANY" }, (info) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error("크롬 계정을 읽지 못했습니다. 크롬에 Google 계정으로 로그인한 뒤 확장을 새로고침해 주세요."));
+        return;
+      }
+      const email = String(info?.email || "").trim().toLowerCase();
+      if (!email) {
+        reject(new Error("크롬에 Google 계정으로 로그인한 뒤 다시 눌러 주세요. 키는 그 계정에 묶입니다."));
+        return;
+      }
+      resolve(email);
     });
-    const data = await response.json().catch(() => ({}));
-    renderQuota(response.ok ? data : null);
-  } catch {
-    renderQuota(null);
-  }
+  });
 }
 
 function sliceCanvas(canvas) {
@@ -521,22 +519,44 @@ function renderSections() {
   sectionPicker.hidden = false;
 }
 
-async function requestCopy({ saved, prompt, images, slotCount, sectionCount }) {
-  const server = String(saved.serverUrl || "http://127.0.0.1:8787").replace(/\/$/, "");
-  const licenseKey = String(saved.licenseKey || "").trim();
-  if (!licenseKey) throw new Error("연결 설정에 라이선스 키를 저장해 주세요.");
-  const response = await fetch(`${server}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ licenseKey, prompt, images, slotCount, sectionCount }),
-  });
+async function requestCopy({ prompt, images, slotCount }) {
+  const geminiKey = geminiInput.value.trim();
+  const licenseKey = licenseInput.value.trim();
+  if (!licenseKey || !geminiKey) {
+    openSettings();
+    throw new Error("설정에서 라이선스 키와 제미나이 키를 저장해 주세요.");
+  }
+  const server = currentServerUrl();
+  const email = await chromeAccountEmail();
+  let response;
+  try {
+    response = await fetch(`${server}/api/license/claim`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ licenseKey, email }),
+    });
+  } catch {
+    throw new Error(`라이선스 서버에 연결하지 못했습니다. 설정에 ${PUBLIC_SERVER} 이 있는지 확인해 주세요.`);
+  }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(data.message || "서버에서 문구를 만들지 못했습니다.");
-    error.lock = Boolean(data.lock);
-    throw error;
+    const message = data.message || "";
+    if (response.status === 404 && /경로를 찾지 못했습니다|키를 찾지 못했습니다/.test(message)) {
+      throw new Error(message === "키를 찾지 못했습니다"
+        ? "이 라이선스 키를 서버에서 찾지 못했습니다. 운영 콘솔에서 설치판 키를 다시 발급해 주세요."
+        : "라이선스 확인 주소가 아직 서버에 없습니다. 서버 배포 후 다시 눌러 주세요.");
+    }
+    throw new Error(message || "라이선스 키를 확인하지 못했습니다.");
   }
-  return data.text;
+  const text = await generateCopy({
+    provider: "gemini",
+    apiKey: geminiKey,
+    prompt,
+    images,
+    slotCount,
+  });
+  if (!String(text || "").trim()) throw new Error("제미나이가 문구를 비워서 보냈습니다. 다시 눌러 주세요.");
+  return text;
 }
 
 async function renderResults(selectedIndexes) {

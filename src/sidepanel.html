@@ -8,42 +8,47 @@
   </head>
   <body>
     <header class="top">
-      <div>
-        <h1>1분에디터</h1>
-        <p class="brand">AcrossEditor</p>
+      <div class="top-row">
+        <div>
+          <h1>1분에디터</h1>
+          <p class="brand">AcrossEditor</p>
+        </div>
+        <button type="button" id="settingsBtn" class="icon-btn" aria-label="설정" title="설정">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path fill="currentColor" d="M19.14 12.94a7.07 7.07 0 0 0 .05-.94 7.07 7.07 0 0 0-.05-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.2 7.2 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.22-1.14.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.6 7.6 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .6.22l2.39-.96c.49.4 1.04.72 1.63.94l.36 2.54a.5.5 0 0 0 .5.42h3.84a.5.5 0 0 0 .5-.42l.36-2.54c.59-.22 1.14-.54 1.63-.94l2.39.96a.5.5 0 0 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/>
+          </svg>
+        </button>
       </div>
-      <div id="quota-meter" class="quota-meter" hidden role="status"></div>
       <p class="lede">이 탭을 위에서 아래까지 한 장으로 저장하고, 새 홈페이지 방향에 맞는 문구를 만듭니다.</p>
+      <p id="licenseHint" class="hint">설정에서 라이선스 키와 제미나이 키를 저장해 주세요.</p>
     </header>
 
-    <details id="settings">
-      <summary>연결 설정</summary>
-      <label>
-        서버 주소
-        <input id="server-url" type="url" inputmode="url" spellcheck="false" placeholder="http://127.0.0.1:8787" />
-      </label>
-      <label>
-        라이선스 키
-        <input id="license-key" type="text" autocomplete="off" spellcheck="false" placeholder="운영 콘솔에서 받은 키" />
-      </label>
-      <button id="save-settings" type="button">설정 저장</button>
-      <p class="hint">문구는 라이선스 키로만 만듭니다. 테스트 서버는 http://127.0.0.1:8787 입니다.</p>
-    </details>
-
-    <details class="subscribe">
-      <summary>구독 안내</summary>
-      <p><strong>스탠다드</strong> · 월 9,900원 · 하루 8건 · 매월 15건</p>
-      <p><strong>프리미엄</strong> · 월 19,900원 · 하루 15건 · 매월 30건</p>
-      <p class="hint">요금은 한 달 단위입니다. 매월 한도가 다시 채워지고, 쓰지 않은 건은 다음 달로 넘어가지 않습니다. 상단에 오늘과 이번 달이 남은 건/한도로 표시됩니다. 스탠다드는 오늘 8/8 · 이번달 15/15, 프리미엄은 오늘 15/15 · 이번달 30/30에서 시작합니다. 캡처와 미리보기 수정은 건수에 포함되지 않습니다.</p>
-    </details>
-
-    <label class="reserve-url">
-      캡처할 주소
-      <input id="target-url" type="url" inputmode="url" spellcheck="false" placeholder="URL을 복사해서 여기에 붙여 넣으세요" />
-    </label>
+    <div id="settingsLayer" class="settings-layer" hidden>
+      <button type="button" id="settingsBackdrop" class="settings-backdrop" aria-label="설정 닫기"></button>
+      <aside class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="settings-head">
+          <h2 id="settingsTitle">설정</h2>
+          <button type="button" id="settingsClose" class="settings-close" aria-label="닫기">×</button>
+        </div>
+        <label>
+          라이선스 키
+          <input id="license-key" type="text" autocomplete="off" spellcheck="false" placeholder="구매 후 받은 키" />
+        </label>
+        <label>
+          제미나이 키
+          <input id="gemini-key" type="password" autocomplete="off" spellcheck="false" placeholder="AI Studio에서 만든 본인 키" />
+        </label>
+        <label>
+          서버 주소
+          <input id="server-url" type="url" inputmode="url" spellcheck="false" placeholder="https://acrosseditor.onrender.com" />
+        </label>
+        <button id="save-settings" class="primary" type="button">설정 저장</button>
+        <p class="hint">라이선스 키는 이 크롬에 로그인한 Google 계정에 묶입니다. 제미나이 키는 이 브라우저에만 저장되고, 문구 요금은 그 키의 무료 한도에서 나갑니다.</p>
+      </aside>
+    </div>
 
     <button id="capture" class="primary" type="button">전체 페이지 캡처</button>
-    <p id="status" class="status" aria-live="polite">참고할 홈페이지를 연 뒤 캡처를 누르세요.</p>
+    <p id="status" class="status" aria-live="polite">참고할 홈페이지 탭을 연 뒤 캡처를 누르세요.</p>
 
     <section id="preview-section" class="preview" hidden>
       <img id="preview" alt="캡처한 전체 페이지 미리보기" />

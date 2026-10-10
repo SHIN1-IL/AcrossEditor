@@ -15,6 +15,23 @@ export function canCapture(url) {
   return /^https?:\/\//i.test(url || "");
 }
 
+export function normalizeCaptureUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(raw) ? raw : `https://${raw}`;
+  let url;
+  try {
+    url = new URL(withScheme);
+  } catch {
+    throw new Error("주소 형식이 아닙니다. example.com 처럼 입력해 주세요.");
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error("http 또는 https 주소만 열 수 있습니다.");
+  }
+  if (url.username || url.password) throw new Error("이 주소는 열 수 없습니다.");
+  return url.href;
+}
+
 export function planShot(covered, scrollY, viewportHeight, totalHeight) {
   const srcY = Math.max(0, covered - scrollY);
   const srcH = Math.max(0, Math.min(viewportHeight - srcY, totalHeight - covered));
@@ -512,8 +529,17 @@ export function parseModelJson(text) {
 
 export function pairSuggestions(blocks, suggestions) {
   const byId = new Map(suggestions.map((item) => [item.id, item]));
-  return blocks.map((block) => {
+  const paired = blocks.map((block) => {
     const match = byId.get(block.id);
+    return {
+      ...block,
+      role: match?.role || block.role,
+      suggestion: match?.suggestion || "",
+    };
+  });
+  if (paired.some((row) => row.suggestion) || !suggestions.length) return paired;
+  return blocks.map((block, index) => {
+    const match = suggestions[index];
     return {
       ...block,
       role: match?.role || block.role,

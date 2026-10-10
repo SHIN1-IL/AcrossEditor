@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { buildPrompt, outputTokenCap, pairSuggestions, parseModelJson } from "../src/logic.js";
 import { readPublicPage } from "./read-page.js";
 import { CASE_COUNT } from "./plans.js";
-import { grantFailedCase, issueLicense, listLicenses, openRetry, recordFinalFailure, releaseSections, reserveSections, takeRetry, updateLicense } from "./store.js";
+import { claimLicense, clearBoundEmail, grantFailedCase, issueLicense, listLicenses, openRetry, recordFinalFailure, releaseSections, reserveSections, takeRetry, updateLicense } from "./store.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const port = Number(process.env.PORT || 8787);
@@ -67,8 +67,25 @@ async function readBody(req) {
   try {
     return JSON.parse(Buffer.concat(chunks).toString("utf8"));
   } catch {
-    return {};
+    throw new Error("요청 내용을 읽지 못했습니다. 구간을 줄이고 다시 눌러 주세요.");
   }
+}
+
+function explainGemini(message) {
+  const text = String(message || "");
+  if (/API key not valid|API_KEY_INVALID|permission denied/i.test(text)) {
+    return "서버의 Gemini 키가 거부되었습니다. 운영 콘솔에서 키를 다시 저장해 주세요.";
+  }
+  if (/quota|RESOURCE_EXHAUSTED|rate limit/i.test(text)) {
+    return "Gemini 사용 한도에 닿았습니다. 잠시 뒤 다시 눌러 주세요.";
+  }
+  if (/not found|is not supported|not supported/i.test(text)) {
+    return "서버의 Gemini 모델로 문구를 만들지 못했습니다. 운영 콘솔의 키와 모델을 확인해 주세요.";
+  }
+  if (/payload|too large|exceeds|INVALID_ARGUMENT/i.test(text)) {
+    return "캡처가 너무 커서 문구를 만들지 못했습니다. 구간을 줄이고 다시 눌러 주세요.";
+  }
+  return text || "Gemini 요청이 실패했습니다.";
 }
 
 function authorized(req) {
@@ -108,7 +125,7 @@ async function gemini(prompt, images, slotCount) {
     },
   );
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error?.message || "Gemini 요청이 실패했습니다.");
+  if (!response.ok) throw new Error(explainGemini(data.error?.message));
   const out = data.candidates?.[0]?.content?.parts || [];
   const visible = out.filter((part) => part.text && !part.thought).map((part) => part.text).join("");
   const text = visible || out.filter((part) => part.text).map((part) => part.text).join("");
@@ -135,6 +152,11 @@ const server = createServer(async (req, res) => {
   try {
     if (req.method === "GET" && url.pathname === "/api/health") {
       send(res, 200, { ok: true });
+      return;
+    }
+    if (req.method === "POST" && url.pathname === "/api/license/claim") {
+      const body = await readBody(req);
+      send(res, 200, await claimLicense(body.licenseKey, body.email));
       return;
     }
     if (req.method === "POST" && url.pathname === "/api/license") {
@@ -238,6 +260,7 @@ const server = createServer(async (req, res) => {
       const extend = url.pathname.match(/^\/admin\/licenses\/([^/]+)\/extend$/);
       const status = url.pathname.match(/^\/admin\/licenses\/([^/]+)\/status$/);
       const restore = url.pathname.match(/^\/admin\/licenses\/([^/]+)\/restore-case$/);
+      const unbind = url.pathname.match(/^\/admin\/licenses\/([^/]+)\/unbind$/);
       if (req.method === "POST" && note) {
         const body = await readBody(req);
         send(res, 200, await updateLicense(decodeURIComponent(note[1]), { note: body.note }));
@@ -257,13 +280,17 @@ const server = createServer(async (req, res) => {
         send(res, 200, await grantFailedCase(decodeURIComponent(restore[1])));
         return;
       }
+      if (req.method === "POST" && unbind) {
+        send(res, 200, await clearBoundEmail(decodeURIComponent(unbind[1])));
+        return;
+      }
     }
     if (req.method === "GET" && (url.pathname === "/privacy" || url.pathname === "/privacy/")) {
       await staticFile(res, path.join(root, "web/privacy.html"));
       return;
     }
     if (req.method === "GET" && (url.pathname === "/" || url.pathname === "/app" || url.pathname === "/app/")) {
-      await staticFile(res, path.join(root, "web/index.html"));
+      await staticFile(res, path.join(root, "web/home.html"));
       return;
     }
     if (req.method === "GET" && (url.pathname === "/ops" || url.pathname === "/ops/")) {

@@ -47,7 +47,13 @@ async function generateGemini({ apiKey, model, prompt, images, slotCount, signal
     },
   );
   const data = await readJson(response);
-  if (!response.ok) throw new Error(apiMessage(response.status, data));
+  if (!response.ok) {
+    const detail = data?.error?.message || "";
+    if (response.status === 404 && model !== "gemini-2.5-flash" && /not found|not supported/i.test(detail)) {
+      return generateGemini({ apiKey, model: "gemini-2.5-flash", prompt, images, slotCount, signal });
+    }
+    throw new Error(apiMessage(response.status, data));
+  }
   const partsOut = data.candidates?.[0]?.content?.parts || [];
   const visible = partsOut.filter((part) => part.text && !part.thought).map((part) => part.text).join("");
   const text = visible || partsOut.filter((part) => part.text).map((part) => part.text).join("");

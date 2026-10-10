@@ -32,22 +32,19 @@
 
   function customerCopy(lic) {
     return [
-      "1분에디터 키가 발급됐습니다.",
+      "1분에디터 설치판 키가 발급됐습니다.",
       "",
       `키: ${lic.license_key}`,
-      `상품: ${lic.plan_label || lic.plan}`,
-      `한도: 하루 ${lic.daily_limit}건 / 매월 ${lic.monthly_limit}건`,
-      `기간: ${lic.expires_at || `처음 등록 후 ${lic.duration_days}일`} · 한 달 주기`,
-      "매월 한도는 다시 채워지고, 쓰지 않은 건은 다음 달로 넘어가지 않습니다.",
-      "상단에 오늘과 이번 달이 남은 건/한도로 표시됩니다.",
+      "상품: 설치판 · 79,000원 · 1회",
+      "기간: 무기한. 키는 처음 문구를 만든 크롬 Google 계정에 묶입니다.",
       "",
       "사용 방법:",
-      `1) 크롬 확장 연결 설정의 서버 주소에 ${location.origin} 을 넣습니다.`,
-      "2) 라이선스 키를 저장합니다.",
-      "3) 참고 페이지를 캡처하고, 구간을 고른 뒤 문구 만들기를 누릅니다.",
-      "4) 상단의 오늘·이번 달 숫자로 남은 건을 확인합니다.",
+      "1) 구매한 ZIP을 풀고 사용방법 PDF를 읽습니다.",
+      "2) 크롬 확장의 설정에 이 키와 본인 제미나이 키를 저장합니다.",
+      "3) 참고할 홈페이지 탭을 연 뒤 전체 페이지 캡처를 누릅니다.",
+      "4) 구간을 고르고 문구 만들기를 누릅니다.",
       "",
-      "캡처와 미리보기 수정은 건수에 포함되지 않습니다.",
+      "Windows와 Mac의 크롬에서 사용합니다. 핸드폰, 아이패드, 갤럭시탭에는 설치되지 않습니다.",
     ].join("\n");
   }
 
@@ -55,7 +52,7 @@
     const data = await admin("/admin/licenses");
     const list = data.licenses || [];
     if (!list.length) {
-      els.rows.innerHTML = `<tr><td colspan="10" class="empty-row">표시할 라이선스가 없습니다.</td></tr>`;
+      els.rows.innerHTML = `<tr><td colspan="6" class="empty-row">표시할 라이선스가 없습니다.</td></tr>`;
       return;
     }
     els.rows.innerHTML = list.map((lic) => {
@@ -63,20 +60,14 @@
       const rowClass = lic.status === "suspended" ? "row-suspended" : "";
       return `<tr class="${rowClass}">
         <td><code>${escapeHtml(key)}</code></td>
-        <td>${escapeHtml(lic.plan_label)}</td>
         <td>${escapeHtml(lic.started_at || "미시작")}</td>
-        <td>${escapeHtml(lic.expires_at || `등록 후 ${lic.duration_days}일`)}</td>
         <td><span class="status-badge status-${escapeHtml(lic.status)}">${escapeHtml(lic.status)}</span></td>
-        <td>${lic.daily_used}/${lic.daily_limit}</td>
-        <td>${lic.monthly_used}/${lic.monthly_limit}</td>
-        <td class="error-cell">${escapeHtml(lic.failure_message || "")}</td>
+        <td class="note-cell">${escapeHtml(lic.bound_email || "미등록")}</td>
         <td class="note-cell"><input class="note-edit" value="${escapeHtml(lic.note || "")}" /></td>
         <td class="actions">
-          ${lic.failure_message && !lic.recovery_used ? `<button type="button" data-act="restore" data-key="${escapeHtml(key)}">1건 추가</button>` : ""}
-          ${lic.recovery_used ? `<span class="plan-meta">복구 완료</span>` : ""}
           <button type="button" data-act="savenote" data-key="${escapeHtml(key)}">메모</button>
           <button type="button" data-act="copy" data-key="${escapeHtml(key)}">안내</button>
-          <button type="button" data-act="extend30" data-key="${escapeHtml(key)}">+30일</button>
+          ${lic.bound_email ? `<button type="button" data-act="unbind" data-key="${escapeHtml(key)}">계정 해제</button>` : ""}
           <button type="button" class="btn-danger" data-act="suspend" data-key="${escapeHtml(key)}">정지</button>
           <button type="button" data-act="activate" data-key="${escapeHtml(key)}">활성</button>
         </td>
@@ -84,44 +75,17 @@
     }).join("");
   }
 
-  const ISSUES = {
-    "standard-30": { plan: "standard", days: 30, notePrefix: "스탠다드 월 9900" },
-    "premium-30": { plan: "premium", days: 30, notePrefix: "프리미엄 월 19900" },
-    "family-standard": { plan: "family_standard", days: 30, notePrefix: "스탠다드 지인" },
-    "family-premium": { plan: "family_premium", days: 30, notePrefix: "프리미엄 지인" },
-    trial: { plan: "trial", days: 30, notePrefix: "체험 1건" },
-  };
-
-  async function issue(kind) {
-    const spec = ISSUES[kind];
+  async function issue() {
     const extra = els.note.value.trim();
     const lic = await admin("/admin/licenses", {
       method: "POST",
-      body: JSON.stringify({ plan: spec.plan, days: spec.days, note: extra ? `${spec.notePrefix} / ${extra}` : spec.notePrefix }),
+      body: JSON.stringify({ plan: "install", days: 0, note: extra ? `설치판 79000 / ${extra}` : "설치판 79000" }),
     });
     els.customerMsg.value = customerCopy(lic);
     els.issueMsg.hidden = false;
     els.issueMsg.textContent = `발급됨: ${lic.license_key}`;
     await loadList();
   }
-
-  async function loadGemini() {
-    const state = await admin("/admin/gemini-key");
-    document.getElementById("geminiState").textContent = state.configured
-      ? `키가 저장되어 있습니다. 끝 4자 ${state.tail}`
-      : "아직 Gemini 키가 없습니다.";
-  }
-
-  document.getElementById("geminiForm").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const apiKey = document.getElementById("geminiKey").value.trim();
-    const state = await admin("/admin/gemini-key", {
-      method: "POST",
-      body: JSON.stringify({ apiKey }),
-    });
-    document.getElementById("geminiKey").value = "";
-    document.getElementById("geminiState").textContent = `키를 저장했습니다. 끝 4자 ${state.tail}`;
-  });
 
   document.getElementById("loginForm").addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -132,7 +96,6 @@
       showErr("");
       document.getElementById("loginCard").hidden = true;
       els.desk.hidden = false;
-      await loadGemini();
       await loadList();
     } catch (error) {
       sessionStorage.removeItem(TOKEN_KEY);
@@ -147,9 +110,7 @@
     els.issueMsg.textContent = "안내문을 복사했습니다.";
   });
   document.getElementById("refreshBtn").addEventListener("click", () => loadList().catch((error) => alert(error.message)));
-  document.querySelectorAll("[data-issue]").forEach((button) => {
-    button.addEventListener("click", () => issue(button.dataset.issue).catch((error) => alert(error.message)));
-  });
+  document.getElementById("issueBtn").addEventListener("click", () => issue().catch((error) => alert(error.message)));
 
   els.rows.addEventListener("click", async (event) => {
     const button = event.target.closest("button");
@@ -168,14 +129,8 @@
         const lic = (data.licenses || []).find((item) => item.license_key === key);
         els.customerMsg.value = customerCopy(lic);
       }
-      if (button.dataset.act === "extend30") {
-        await admin(`/admin/licenses/${encodeURIComponent(key)}/extend`, {
-          method: "POST",
-          body: JSON.stringify({ days: 30 }),
-        });
-      }
-      if (button.dataset.act === "restore") {
-        await admin(`/admin/licenses/${encodeURIComponent(key)}/restore-case`, { method: "POST", body: "{}" });
+      if (button.dataset.act === "unbind") {
+        await admin(`/admin/licenses/${encodeURIComponent(key)}/unbind`, { method: "POST", body: "{}" });
       }
       if (button.dataset.act === "suspend" || button.dataset.act === "activate") {
         await admin(`/admin/licenses/${encodeURIComponent(key)}/status`, {

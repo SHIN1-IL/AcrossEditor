@@ -1,4 +1,5 @@
 export const PLANS = {
+  install: { label: "설치판", daily: 0, monthly: 0, spendCap: 0 },
   trial: { label: "체험", daily: 1, monthly: 1, spendCap: 240 },
   standard: { label: "스탠다드", daily: 8, monthly: 15, spendCap: 3600 },
   premium: { label: "프리미엄", daily: 15, monthly: 30, spendCap: 7200 },
